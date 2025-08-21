@@ -1,5 +1,5 @@
 """
-Django settings for data_visualism project.
+Django settings for pardonai project.
 """
 
 from pathlib import Path
@@ -50,6 +50,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'pardonai.urls'
 
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -99,11 +100,12 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'static'  # collectstatic burada toplanır
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # collectstatic çıktısı buraya gelir
+
+# LOCAL geliştirmede gerekiyorsa uncomment edilebilir, PROD için gerekmez:
+# STATICFILES_DIRS = [ BASE_DIR / 'static' ]
+
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (uploaded files)
