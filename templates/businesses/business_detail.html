@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ business.business_name }}{% endblock %}
+{% block breadcrumb %}İşletmeler / {{ business.business_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+  <div>
+    <h1 style="margin-bottom: .25rem;">{{ business.business_name }}</h1>
+    <small class="text-muted">{{ business.business_type|default:"—" }}</small>
+  </div>
+  <div class="quick-actions" style="gap:.5rem;">
+    <a href="{% url 'businesses:business_activate' business.business_id %}" class="quick-action-btn">
+      <i class="fas fa-check-circle"></i><span>Aktif işletme yap</span>
+    </a>
+  </div>
+</div>
+
+{% if mode == 'branches' %}
+  <!-- Kafe/Restoran: Şubeler -->
+  <div class="module-card">
+    <h3>Şubeler</h3>
+    <ul class="list">
+      {% for br in branches %}
+        <li class="list-item" style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            {% if br.is_primary %}<strong>[Ana]</strong>{% endif %}
+            {{ br.contact_value }}
+            {% if br.notes %} <small class="text-muted">— {{ br.notes }}</small>{% endif %}
+          </div>
+          {% if not br.is_primary %}
+            <a class="link" href="{% url 'businesses:branch_make_primary' business.business_id br.id %}">
+              Ana yap
+            </a>
+          {% endif %}
+        </li>
+      {% empty %}
+        <li class="list-item">Kayıtlı şube yok.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="module-card" style="margin-top:1rem;">
+    <h4>Şube Ekle</h4>
+    <form method="post" action="{% url 'businesses:branch_add' business.business_id %}">
+      {% csrf_token %}
+      <!-- Basit form alanları (view’da BranchForm üzerinden dolduracağız) -->
+      <div class="form-row">
+        <label>Adres</label>
+        <input type="text" name="contact_value" placeholder="Örn: Moda Cd. No:18, Kadıköy/İstanbul" required>
+      </div>
+      <div class="form-row" style="display:flex; gap: .75rem; align-items:center;">
+        <input type="checkbox" name="is_primary" id="is_primary">
+        <label for="is_primary">Ana şube</label>
+      </div>
+      <div class="form-row">
+        <label>Not</label>
+        <textarea name="notes" rows="2" placeholder="İsteğe bağlı"></textarea>
+      </div>
+      <button class="quick-action-btn" type="submit">
+        <i class="fas fa-plus"></i><span>Şube Ekle</span>
+      </button>
+    </form>
+  </div>
+
+{% elif mode == 'trendyol' %}
+  <!-- Trendyol: Ürün bazlı hesaplama placeholder -->
+  <div class="module-card">
+    <h3>Ürün Bazlı Hesaplama</h3>
+    <p>Buraya Trendyol için ürün, sipariş ve kârlılık analizi gelecek. Metri̇k/hesap detaylarını verdiğinde bu alanı bağlayacağız.</p>
+  </div>
+
+{% else %}
+  <!-- Diğerleri: Özet -->
+  <div class="grid-2">
+    <div class="module-card">
+      <h3>Profil</h3>
+      {% if profile %}
+        <p>{{ profile.description|default:"—" }}</p>
+        {% if profile.website %}<p><a class="link" href="{{ profile.website }}" target="_blank">Website</a></p>{% endif %}
+      {% else %}
+        <p>Profil bilgisi yok.</p>
+      {% endif %}
+    </div>
+
+    <div class="module-card">
+      <h3>İletişim</h3>
+      <ul class="list">
+        {% for c in contacts %}
+          <li class="list-item">{{ c.contact_type }}: {{ c.contact_value }}</li>
+        {% empty %}
+          <li class="list-item">İletişim kaydı yok.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="module-card" style="margin-top:1rem;">
+    <h3>Belgeler</h3>
+    <ul class="list">
+      {% for d in documents %}
+        <li class="list-item">{{ d.title }} — {{ d.document_type }} — {{ d.upload_date|date:'d.m.Y H:i' }}</li>
+      {% empty %}
+        <li class="list-item">Belge yok.</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+{% endblock %}

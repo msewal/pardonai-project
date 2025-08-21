@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}İşletme Ekle{% endblock %}
+{% block breadcrumb %}İşletmeler / Yeni{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Yeni İşletme</h1>
+</div>
+
+<div class="module-card">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div style="margin-top: .75rem;">
+      <button type="submit" class="quick-action-btn">
+        <i class="fas fa-save"></i><span>Kaydet</span>
+      </button>
+      <a href="{% url 'businesses:business_list' %}" class="quick-action-btn" style="margin-left:.5rem;">
+        <i class="fas fa-times"></i><span>Vazgeç</span>
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

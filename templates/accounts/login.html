@@ -1,0 +1,12 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Giriş Yap{% endblock %}
+{% block content %}
+<div class="module-card" style="max-width:400px;margin:2rem auto;">
+  <h2>Giriş Yap</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="quick-action-btn">Giriş</button>
+  </form>
+</div>
+{% endblock %}

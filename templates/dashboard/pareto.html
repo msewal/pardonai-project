@@ -1,0 +1,27 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Pareto Analizi{% endblock %}
+{% block breadcrumb %}Pareto Analizi{% endblock %}
+
+{% block content %}
+<div style="background: white; padding: 2rem; border-radius: 10px; margin: 1rem;">
+    <h1 style="color: #124080;">Pareto Analizi</h1>
+    <p style="color: #333;">Bu sayfada ürün performans analizi ve optimizasyon araçları bulunacak.</p>
+    
+    <div style="margin-top: 2rem;">
+        <h2>Yakında:</h2>
+        <ul>
+            <li>80/20 Kuralı Analizi</li>
+            <li>Ürün Performans Grafikleri</li>
+            <li>Satış Optimizasyon Önerileri</li>
+            <li>Kar Marjı Analizi</li>
+        </ul>
+    </div>
+    
+    <div style="margin-top: 2rem;">
+        <a href="{% url 'dashboard:dashboard_page' %}" style="background: #124080; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+            Ana Dashboard'a Dön
+        </a>
+    </div>
+</div>
+{% endblock %}

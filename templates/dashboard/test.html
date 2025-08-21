@@ -1,0 +1,29 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Test Sayfası{% endblock %}
+{% block breadcrumb %}Test{% endblock %}
+
+{% block content %}
+<div style="background: white; padding: 2rem; border-radius: 10px; margin: 1rem;">
+    <h1 style="color: #124080;">Test Sayfası</h1>
+    <p style="color: #333;">Bu bir test sayfasıdır. Eğer bu sayfayı görüyorsanız, template sistemi çalışıyor demektir.</p>
+    
+    <div style="margin-top: 2rem;">
+        <h2>Test Verileri:</h2>
+        <ul>
+            <li>Toplam İşletme: {{ total_businesses|default:"0" }}</li>
+            <li>Aktif İşletme: {{ active_businesses|default:"0" }}</li>
+            <li>Toplam Menü: {{ total_menus|default:"0" }}</li>
+            <li>Aktif Menü: {{ active_menus|default:"0" }}</li>
+            <li>Toplam Sipariş: {{ total_orders|default:"0" }}</li>
+            <li>Bekleyen Sipariş: {{ pending_orders|default:"0" }}</li>
+        </ul>
+    </div>
+    
+    <div style="margin-top: 2rem;">
+        <a href="{% url 'dashboard:dashboard_page' %}" style="background: #124080; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+            Ana Dashboard'a Dön
+        </a>
+    </div>
+</div>
+{% endblock %}

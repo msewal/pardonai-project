@@ -1,0 +1,201 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}İşletme Ekle{% endblock %}
+{% block breadcrumb %}İşletmeler / İşletme Ekle{% endblock %}
+
+{% block extra_css %}
+<style>
+  .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; }
+  .module-card h3 { margin-top:0; }
+  .form-row { margin-bottom:.75rem; }
+  .form-row label { display:block; font-weight:600; margin-bottom:.25rem; }
+  .form-actions { margin-top:1rem; display:flex; gap:.5rem; }
+  .row-flex { display:flex; gap:.5rem; align-items:flex-start; }
+  .muted { opacity:.7; font-size:.9rem; }
+  .del-col { display:flex; align-items:center; gap:.35rem; }
+  .mini { font-size:.85rem; opacity:.8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+  <h1>İşletme Ekle</h1>
+  <a href="{% url 'businesses:business_list' %}" class="quick-action-btn">
+    <i class="fas fa-building"></i><span>İşletmeler</span>
+  </a>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <!-- ÇEKİRDEK BİLGİLER -->
+  <div class="module-card">
+    <h3>Temel Bilgiler</h3>
+    {{ core_form.non_field_errors }}
+    <div class="grid-2">
+      <div>
+        <div class="form-row">{{ core_form.business_name.label_tag }}{{ core_form.business_name }}</div>
+        <div class="form-row">{{ core_form.business_address.label_tag }}{{ core_form.business_address }}</div>
+        <div class="form-row row-flex">
+          <div style="flex:1">{{ core_form.owner_first_name.label_tag }}{{ core_form.owner_first_name }}</div>
+          <div style="flex:1">{{ core_form.owner_last_name.label_tag }}{{ core_form.owner_last_name }}</div>
+        </div>
+        <div class="form-row row-flex">
+          <div style="flex:1">{{ core_form.business_phone.label_tag }}{{ core_form.business_phone }}</div>
+          <div style="flex:1">{{ core_form.owner_phone.label_tag }}{{ core_form.owner_phone }}</div>
+        </div>
+        <div class="form-row row-flex">
+          <div style="flex:1">{{ core_form.email.label_tag }}{{ core_form.email }}</div>
+          <div style="flex:1">{{ core_form.tax_number.label_tag }}{{ core_form.tax_number }}</div>
+        </div>
+      </div>
+      <div>
+        <div class="form-row row-flex">
+          <div style="flex:1">{{ core_form.business_type.label_tag }}{{ core_form.business_type }}</div>
+          <div style="flex:1">{{ core_form.status.label_tag }}{{ core_form.status }}</div>
+        </div>
+        <div class="form-row">{{ core_form.subject.label_tag }}{{ core_form.subject }}</div>
+        <div class="form-row">{{ core_form.notes.label_tag }}{{ core_form.notes }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HİZMET / POS -->
+  <div class="module-card">
+    <h3>Hizmet ve POS</h3>
+    <div class="grid-2">
+      <div>
+        <div class="form-row row-flex">
+          <div style="flex:1">{{ core_form.service_type.label_tag }}{{ core_form.service_type }}</div>
+          <div style="flex:1">{{ core_form.service_duration.label_tag }}{{ core_form.service_duration }}</div>
+        </div>
+        <div class="form-row row-flex">
+          <div style="flex:1">{{ core_form.service_start_date.label_tag }}{{ core_form.service_start_date }}</div>
+          <div style="flex:1">{{ core_form.service_end_date.label_tag }}{{ core_form.service_end_date }}</div>
+        </div>
+      </div>
+      <div>
+        <div class="form-row row-flex">
+          <div style="flex:1">{{ core_form.pos_system_status.label_tag }}{{ core_form.pos_system_status }}</div>
+          <div style="flex:1">{{ core_form.pos_duration.label_tag }}{{ core_form.pos_duration }}</div>
+        </div>
+        <div class="form-row row-flex">
+          <div style="flex:1">{{ core_form.pos_start_date.label_tag }}{{ core_form.pos_start_date }}</div>
+          <div style="flex:1">{{ core_form.pos_end_date.label_tag }}{{ core_form.pos_end_date }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFİL -->
+  <div class="module-card">
+    <h3>Profil</h3>
+    {{ profile_form.non_field_errors }}
+    <div class="grid-2">
+      <div>
+        <div class="form-row">{{ profile_form.logo.label_tag }}{{ profile_form.logo }}</div>
+        <div class="form-row">{{ profile_form.website.label_tag }}{{ profile_form.website }}</div>
+        <div class="form-row">{{ profile_form.description.label_tag }}{{ profile_form.description }}</div>
+      </div>
+      <div>
+        <div class="form-row">{{ profile_form.social_media.label_tag }}{{ profile_form.social_media }}<div class="muted">{{ profile_form.fields.social_media.help_text }}</div></div>
+        <div class="form-row">{{ profile_form.operating_hours.label_tag }}{{ profile_form.operating_hours }}<div class="muted">{{ profile_form.fields.operating_hours.help_text }}</div></div>
+        <div class="form-row">{{ profile_form.special_features.label_tag }}{{ profile_form.special_features }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- İLETİŞİM FORMSET -->
+  <div class="module-card">
+    <h3>İletişimler</h3>
+    {{ contact_fs.management_form }}
+    {% for form in contact_fs %}
+      {% if not form.cleaned_data.DELETE %}
+      <div class="row-flex" style="margin-bottom:.5rem;">
+        <div style="width:170px">{{ form.contact_type }}</div>
+        <div style="flex:1">{{ form.contact_value }}</div>
+        <div style="width:120px" class="del-col">
+          <label class="mini">{{ form.is_primary }} Ana</label>
+          <label class="mini">{{ form.DELETE }} Sil</label>
+        </div>
+        <div style="flex:1">{{ form.notes }}</div>
+      </div>
+      {% endif %}
+    {% endfor %}
+    <button type="button" class="quick-action-btn" id="add-contact">
+      <i class="fas fa-plus"></i><span>Satır Ekle</span>
+    </button>
+  </div>
+
+  <!-- BELGELER FORMSET -->
+  <div class="module-card">
+    <h3>Belgeler</h3>
+    {{ doc_fs.management_form }}
+    {% for form in doc_fs %}
+      {% if not form.cleaned_data.DELETE %}
+      <div class="row-flex" style="margin-bottom:.5rem;">
+        <div style="width:180px">{{ form.document_type }}</div>
+        <div style="flex:1">{{ form.title }}</div>
+        <div style="flex:1">{{ form.description }}</div>
+        <div style="flex:1">{{ form.file }}</div>
+        <div style="width:80px" class="del-col"><label class="mini">{{ form.DELETE }} Sil</label></div>
+      </div>
+      {% endif %}
+    {% endfor %}
+    <button type="button" class="quick-action-btn" id="add-doc">
+      <i class="fas fa-plus"></i><span>Satır Ekle</span>
+    </button>
+  </div>
+
+  <div class="form-actions">
+    <button class="quick-action-btn" type="submit">
+      <i class="fas fa-save"></i><span>Kaydet</span>
+    </button>
+    <a class="quick-action-btn" href="{% url 'businesses:business_list' %}">
+      <i class="fas fa-times"></i><span>Vazgeç</span>
+    </a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  function addRow(prefix) {
+    const total = document.querySelector(`#id_${prefix}-TOTAL_FORMS`);
+    const count = parseInt(total.value, 10);
+    const mgmt = document.querySelectorAll(`[name^="${prefix}-"][name$="-DELETE"]`);
+    const container = total.closest('.module-card');
+    // Basit boş satır üretimi (inputları klonlamak yerine template string de kullanılabilir)
+    const row = document.createElement('div');
+    row.className = 'row-flex';
+    row.style.marginBottom = '.5rem';
+    if (prefix === 'c') {
+      row.innerHTML = `
+        <div style="width:170px"><select name="${prefix}-${count}-contact_type">
+          <option value="phone">Telefon</option>
+          <option value="email">E-Posta</option>
+          <option value="address">Adres</option>
+        </select></div>
+        <div style="flex:1"><input type="text" name="${prefix}-${count}-contact_value" maxlength="255"></div>
+        <div style="width:120px" class="del-col">
+          <label class="mini"><input type="checkbox" name="${prefix}-${count}-is_primary"> Ana</label>
+          <label class="mini"><input type="checkbox" name="${prefix}-${count}-DELETE"> Sil</label>
+        </div>
+        <div style="flex:1"><textarea name="${prefix}-${count}-notes" rows="1"></textarea></div>`;
+    } else {
+      row.innerHTML = `
+        <div style="width:180px"><input type="text" name="${prefix}-${count}-document_type" maxlength="100"></div>
+        <div style="flex:1"><input type="text" name="${prefix}-${count}-title" maxlength="255"></div>
+        <div style="flex:1"><textarea name="${prefix}-${count}-description" rows="1"></textarea></div>
+        <div style="flex:1"><input type="file" name="${prefix}-${count}-file"></div>
+        <div style="width:80px" class="del-col"><label class="mini"><input type="checkbox" name="${prefix}-${count}-DELETE"> Sil</label></div>`;
+    }
+    container.insertBefore(row, container.querySelector(`button#add-${prefix === 'c' ? 'contact' : 'doc'}`));
+    total.value = count + 1;
+  }
+  document.getElementById('add-contact')?.addEventListener('click', function(){ addRow('c'); });
+  document.getElementById('add-doc')?.addEventListener('click', function(){ addRow('d'); });
+})();
+</script>
+{% endblock %}

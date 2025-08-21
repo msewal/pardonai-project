@@ -1,0 +1,202 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}PardonAI Dashboard{% endblock %}
+{% block breadcrumb %}Ana Dashboard{% endblock %}
+
+{% block content %}
+<div class="welcome-section">
+    <h1>PardonAI Yönetim Paneli</h1>
+    <p>İşletme yönetimi, menü, bayi, sipariş ve performans takibi için modüllere erişin.</p>
+</div>
+
+<!-- İstatistik Kartları -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-building"></i>
+        </div>
+        <div class="stat-content">
+            <h3>Toplam İşletme</h3>
+            <p class="stat-number">{{ total_businesses|default:"0" }}</p>
+            <span class="stat-change positive">Aktif: {{ active_businesses|default:"0" }}</span>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-utensils"></i>
+        </div>
+        <div class="stat-content">
+            <h3>Toplam Menü</h3>
+            <p class="stat-number">{{ total_menus|default:"0" }}</p>
+            <span class="stat-change positive">Aktif: {{ active_menus|default:"0" }}</span>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <div class="stat-content">
+            <h3>Toplam Sipariş</h3>
+            <p class="stat-number">{{ total_orders|default:"0" }}</p>
+            <span class="stat-change positive">Bekleyen: {{ pending_orders|default:"0" }}</span>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-content">
+            <h3>Performans</h3>
+            <p class="stat-number">{{ total_metrics|default:"0" }}</p>
+            <span class="stat-change positive">Hedefler: {{ total_goals|default:"0" }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Modül Kartları -->
+<div class="modules-section">
+    <h2>Yönetim Modülleri</h2>
+    
+    <div class="modules-grid">
+        <!-- İşletme Yönetimi -->
+        <div class="module-card">
+            <div class="module-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            <div class="module-content">
+                <h3>İşletme Yönetimi</h3>
+                <p>İşletme bilgileri, profil ve iletişim yönetimi</p>
+                <div class="module-actions">
+                    <a href="{% url 'businesses:business_list' %}" class="btn btn-primary">
+                        <i class="fas fa-list"></i> Listele
+                    </a>
+                    <a href="{% url 'businesses:business_create' %}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Yeni Ekle
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menü Yönetimi -->
+        <div class="module-card">
+            <div class="module-icon">
+                <i class="fas fa-utensils"></i>
+            </div>
+            <div class="module-content">
+                <h3>Menü Yönetimi</h3>
+                <p>Menü ve ürün yönetimi, kategoriler ve ekstralar</p>
+                <div class="module-actions">
+                    <a href="{% url 'menu:menu_list' %}" class="btn btn-primary">
+                        <i class="fas fa-list"></i> Menüler
+                    </a>
+                    <a href="{% url 'menu:product_list' %}" class="btn btn-info">
+                        <i class="fas fa-box"></i> Ürünler
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bayi Yönetimi -->
+        <div class="module-card">
+            <div class="module-icon">
+                <i class="fas fa-handshake"></i>
+            </div>
+            <div class="module-content">
+                <h3>Bayi Yönetimi</h3>
+                <p>Bayi bilgileri, deneyimler ve komisyon takibi</p>
+                <div class="module-actions">
+                    <a href="{% url 'dealers:dealer_list' %}" class="btn btn-primary">
+                        <i class="fas fa-list"></i> Bayiler
+                    </a>
+                    <a href="{% url 'dealers:experience_list' %}" class="btn btn-info">
+                        <i class="fas fa-star"></i> Deneyimler
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sipariş Yönetimi -->
+        <div class="module-card">
+            <div class="module-icon">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <div class="module-content">
+                <h3>Sipariş Yönetimi</h3>
+                <p>Sipariş takibi, müşteri yönetimi ve analitikler</p>
+                <div class="module-actions">
+                    <a href="{% url 'orders:order_list' %}" class="btn btn-primary">
+                        <i class="fas fa-list"></i> Siparişler
+                    </a>
+                    <a href="{% url 'orders:order_analytics' %}" class="btn btn-info">
+                        <i class="fas fa-chart-bar"></i> Analitikler
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performans Takibi -->
+        <div class="module-card">
+            <div class="module-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="module-content">
+                <h3>Performans Takibi</h3>
+                <p>Metrikler, raporlar ve hedef takibi</p>
+                <div class="module-actions">
+                    <a href="{% url 'performance:performance_dashboard' %}" class="btn btn-primary">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{% url 'performance:metrics_list' %}" class="btn btn-info">
+                        <i class="fas fa-chart-pie"></i> Metrikler
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pareto Analizi -->
+        <div class="module-card">
+            <div class="module-icon">
+                <i class="fas fa-chart-area"></i>
+            </div>
+            <div class="module-content">
+                <h3>Pareto Analizi</h3>
+                <p>Ürün performans analizi ve optimizasyon</p>
+                <div class="module-actions">
+                    <a href="{% url 'dashboard:pareto_page' %}" class="btn btn-primary">
+                        <i class="fas fa-chart-area"></i> Analiz
+                    </a>
+                    <a href="{% url 'dashboard:pareto_page' %}" class="btn btn-info">
+                        <i class="fas fa-download"></i> Rapor
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hızlı Erişim -->
+<div class="quick-access">
+    <h2>Hızlı Erişim</h2>
+    <div class="quick-actions">
+        <a href="{% url 'businesses:business_create' %}" class="quick-action-btn">
+            <i class="fas fa-plus"></i>
+            <span>Yeni İşletme</span>
+        </a>
+        <a href="{% url 'menu:menu_create' %}" class="quick-action-btn">
+            <i class="fas fa-plus"></i>
+            <span>Yeni Menü</span>
+        </a>
+        <a href="{% url 'orders:order_create' %}" class="quick-action-btn">
+            <i class="fas fa-plus"></i>
+            <span>Yeni Sipariş</span>
+        </a>
+        <a href="{% url 'performance:metrics_create' %}" class="quick-action-btn">
+            <i class="fas fa-plus"></i>
+            <span>Yeni Metrik</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

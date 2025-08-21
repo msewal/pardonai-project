@@ -1,0 +1,31 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}{{ platform_name }} - E-ticaret İşletmeleri{% endblock %}
+{% block breadcrumb %}{{ platform_name }} / E-ticaret İşletmeleri{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+  <h1>{{ platform_name }} - E-ticaret İşletmeleri</h1>
+  <div>
+    <a href="{% url 'businesses:ecommerce_business_add' platform_name=platform_name %}" class="quick-action-btn" style="margin-right:1rem;">
+      <i class="fas fa-plus"></i> E-ticaret Ekle
+    </a>
+    <a href="{% url 'businesses:business_list' %}" class="quick-action-btn">
+      <i class="fas fa-arrow-left"></i> İşletmelere Dön
+    </a>
+  </div>
+</div>
+
+<div class="section-head"><h2>Manuel Eklenen E-ticaret İşletmeleri</h2></div>
+<div class="biz-grid">
+  {% for b in manual_ecommerce %}
+    <a class="biz-btn" href="{% url 'businesses:business_detail' b.business_id %}" title="{{ b.business_name }}">
+      <i class="fas fa-store" style="font-size:1.4rem; opacity:.7; margin-bottom:.35rem;"></i>
+      {{ b.business_name }}
+      <span class="subtitle">E-ticaret</span>
+    </a>
+  {% empty %}
+    <div class="module-card"><p>Manuel eklenen e-ticaret işletmesi yok.</p></div>
+  {% endfor %}
+</div>
+{% endblock %}
