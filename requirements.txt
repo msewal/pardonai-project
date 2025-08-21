@@ -1,3 +1,31 @@
-Django==4.2.7
+# ── Core
+Django>=4.2.7,<4.3
+
+# ── WSGI server (Linux/EC2/Beanstalk/ECS)
+gunicorn>=21.2,<22
+
+# ── Static files (serving & compression)
+whitenoise>=6.6,<7
+brotli>=1.1  # WhiteNoise için opsiyonel, brotli sıkıştırma
+
+# ── DB (PostgreSQL için; RDS/Postgres kullanacaksan)
+psycopg2-binary>=2.9.9,<3
+dj-database-url>=2.2
+
+# ── Ortam değişkenleri
+django-environ>=0.11
+# veya istersen: python-dotenv>=1.0
+
+# ── Medya ve resimler
+Pillow>=10.0
+
+# ── Excel içe aktarma (senin kodlarından)
+openpyxl>=3.1
+
+# ── (Opsiyonel) S3 kullanacaksan statik/medya için
+django-storages[boto3]>=1.14
+boto3>=1.34
+
+# ── Eklemeler
 pandas
 openpyxl
