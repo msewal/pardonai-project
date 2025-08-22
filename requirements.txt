@@ -24,3 +24,6 @@ django
 gunicorn
 whitenoise
 psycopg2-binary
+
+pandas>=2.0
+numpy>=1.24

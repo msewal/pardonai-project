@@ -1,28 +1,538 @@
-{% extends 'dashboard/base.html' %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Pareto Analizi{% endblock %}
 {% block breadcrumb %}Pareto Analizi{% endblock %}
 
+{% block extra_css %}
+<style>
+  :root{
+    --ink:#0b1220; --muted:#6b7280; --panel:#fff;
+    --brand:#2563eb; --brand-soft:#dbeafe; --brand-strong:#1d4ed8;
+    --accent:#f97316; --accent-soft:#ffedd5;
+    --green:#10b981; --rose:#ef4444; --yellow:#eab308; --purple:#7c3aed;
+    --card-shadow: 0 8px 30px rgba(3, 7, 18, .08);
+    --radius:16px;
+  }
+  .screen { display:grid; gap:16px; }
+  .grid-2 { display:grid; gap:16px; grid-template-columns: 1fr 1fr; }
+  .grid-3 { display:grid; gap:16px; grid-template-columns: 1fr 1fr 1fr; }
+  .card {
+    background:var(--panel); border-radius:var(--radius); padding:18px 18px;
+    box-shadow:var(--card-shadow);
+  }
+  .title { font-weight:800; color:var(--ink); font-size:1.25rem; margin-bottom:6px; }
+  .muted { color:var(--muted); }
+  .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:end; }
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .field input,.field select{
+    padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px; min-width:170px;
+  }
+  .btn { border:0; border-radius:12px; padding:10px 14px; font-weight:700; cursor:pointer; }
+  .btn-primary { background:linear-gradient(135deg,var(--brand),var(--purple)); color:#fff; }
+  .btn-ghost { background:#f3f4f6; color:var(--ink); }
+  .kpis { display:flex; gap:10px; flex-wrap:wrap; }
+  .pill {
+    display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px;
+    color:#0b1220; background:linear-gradient(135deg,#f8fafc,#eef2ff);
+    border:1px solid #e5e7eb; font-weight:700;
+  }
+  .pill .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; }
+  .chart-wrap { position:relative; height:520px; }
+  .chart-sm { position:relative; height:360px; }
+  .table { width:100%; border-collapse:separate; border-spacing:0 8px; }
+  .table th { text-align:left; font-size:.85rem; color:#475569; padding:6px 10px; }
+  .table td { background:#fff; padding:10px; border-top:1px solid #eef2f7; border-bottom:1px solid #eef2f7; }
+  .badge { padding:4px 8px; border-radius:999px; font-weight:800; font-size:.8rem; }
+  .A { background: var(--green); color:#fff; }
+  .B { background: var(--yellow); color:#111827; }
+  .C { background: #e5e7eb; color:#0f172a; }
+  .note { font-size:.9rem; color:#475569; }
+  .legend-swatch { display:inline-flex; align-items:center; gap:6px; margin-right:12px; }
+  .legend-swatch i { width:10px; height:10px; border-radius:2px; display:inline-block; }
+  .danger { color:var(--rose); }
+  .ok { color:var(--green); }
+  .divider { height:1px; background:#eef2f7; margin:6px 0 12px; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="background: white; padding: 2rem; border-radius: 10px; margin: 1rem;">
-    <h1 style="color: #124080;">Pareto Analizi</h1>
-    <p style="color: #333;">Bu sayfada ürün performans analizi ve optimizasyon araçları bulunacak.</p>
-    
-    <div style="margin-top: 2rem;">
-        <h2>Yakında:</h2>
-        <ul>
-            <li>80/20 Kuralı Analizi</li>
-            <li>Ürün Performans Grafikleri</li>
-            <li>Satış Optimizasyon Önerileri</li>
-            <li>Kar Marjı Analizi</li>
-        </ul>
+<div class="screen">
+
+  <!-- Başlık -->
+  <div class="card">
+    <div class="title">Pareto Analizi — Ürünlerin Toplam Kâra Katkısı</div>
+    <div class="muted">Filtrele · % eşik belirle · barlara tıkla · senaryo çalıştır · CSV indir.</div>
+  </div>
+
+  <!-- Araç çubuğu + KPI'lar -->
+  <div class="card">
+    <div class="toolbar">
+      <div class="field">
+        <label class="muted">Tarih (başlangıç)</label>
+        <input type="date" id="dateFrom">
+      </div>
+      <div class="field">
+        <label class="muted">Tarih (bitiş)</label>
+        <input type="date" id="dateTo">
+      </div>
+      <div class="field">
+        <label class="muted">Arama (Ürün adı)</label>
+        <input type="text" id="search" placeholder="örn. A | Burger">
+      </div>
+      <div class="field">
+        <label class="muted">Grupla</label>
+        <select id="groupby">
+          <option value="name" selected>Product Name</option>
+          <option value="id">Product ID</option>
+        </select>
+      </div>
+      <div class="field" style="min-width:220px;">
+        <label class="muted">Threshold: <b><span id="thVal">80</span>%</b></label>
+        <input type="range" min="50" max="95" step="1" value="80" id="threshold">
+      </div>
+
+      <button class="btn btn-primary" id="applyBtn">Uygula</button>
+      <button class="btn btn-ghost" id="resetBtn">Sıfırla</button>
+      <button class="btn btn-ghost" id="exportBtn">CSV İndir</button>
+
+      <div class="divider" style="flex-basis:100%"></div>
+
+      <div class="legend-swatch"><i style="background:rgba(37, 99, 235, .85)"></i> Seçili ürün(ler)</div>
+      <div class="legend-swatch"><i style="background:rgba(59, 130, 246, .35)"></i> Diğer ürünler</div>
+      <div class="legend-swatch"><i style="background:var(--accent)"></i> Kümülatif %</div>
+      <div class="legend-swatch"><i style="background:var(--rose)"></i> Eşik çizgisi</div>
     </div>
-    
-    <div style="margin-top: 2rem;">
-        <a href="{% url 'dashboard:dashboard_page' %}" style="background: #124080; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-            Ana Dashboard'a Dön
-        </a>
+
+    <div class="divider"></div>
+
+    <div class="kpis" id="kpis">
+      <div class="pill"><span class="dot" style="background:var(--brand)"></span>
+        Toplam Kâr: <span id="kpiTotal" style="margin-left:6px;">₺0</span>
+      </div>
+      <div class="pill"><span class="dot" style="background:var(--rose)"></span>
+        Gini: <span id="kpiGini" style="margin-left:6px;">0.00</span>
+      </div>
+      <div class="pill"><span class="dot" style="background:var(--green)"></span>
+        %<span id="kpiThrVal">80</span> dilim ürün adedi: <span id="kpiThrCount" style="margin-left:6px;">0</span>
+      </div>
+      <div class="pill"><span class="dot" style="background:var(--accent)"></span>
+        Seçili kâr payı: <span id="kpiSelShare" style="margin-left:6px;">0%</span>
+      </div>
+      <div class="pill"><span class="dot" style="background:#111827"></span>
+        A/B/C dağılımı: <span id="kpiABC" style="margin-left:6px;">—</span>
+      </div>
     </div>
+  </div>
+
+  <!-- Ana Pareto -->
+  <div class="card">
+    <div class="title">Pareto Grafiği</div>
+    <div class="chart-wrap"><canvas id="paretoChart"></canvas></div>
+    <div class="note" style="margin-top:8px;">
+      İpucu: Bar(lar)a tıklayarak seçim yapabilir, aşağıdaki “What-If” ile senaryoyu yalnızca seçili ürünler üzerinde koşturabilirsin.
+    </div>
+  </div>
+
+  <!-- Lorenz + Top-N -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="title">Lorenz Eğrisi &nbsp; <small class="muted">— Eşitsizlik ölçüsü (Gini)</small></div>
+      <div class="chart-sm"><canvas id="lorenzChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="title">Top-N Ürünler</div>
+      <div class="chart-sm"><canvas id="topnChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ABC Treemap + Scatter -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="title">ABC Sınıflandırma (Treemap)</div>
+      <div class="chart-sm"><canvas id="treemapChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="title">Saçılım Grafikleri</div>
+      <div class="toolbar" style="margin-bottom:8px;">
+        <select id="scatterType">
+          <option value="click_profit">Click → Profit</option>
+          <option value="sales_profit">Sales → Profit</option>
+          <option value="ppc_click">Avg Profit/Click → Click</option>
+          <option value="unit_sales">Avg Unit Profit → Sales</option>
+        </select>
+      </div>
+      <div class="chart-sm"><canvas id="scatterChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Histogramlar + What-If -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="title">Dağılımlar (Histogram)</div>
+      <div class="grid-2">
+        <div class="chart-sm" style="height:260px"><canvas id="histPPC"></canvas></div>
+        <div class="chart-sm" style="height:260px"><canvas id="histUnit"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="title">What-If Simülasyonu</div>
+      <div class="toolbar" style="margin-top:6px;">
+        <div class="field">
+          <label class="muted">Fiyat Değişimi (%)</label>
+          <input type="number" id="priceDelta" value="0" step="1">
+        </div>
+        <div class="field">
+          <label class="muted">Satış Uplift (%)</label>
+          <input type="number" id="salesUplift" value="0" step="1">
+        </div>
+        <button class="btn btn-primary" id="runWhatIf">Simülasyonu Çalıştır</button>
+        <button class="btn btn-ghost" id="clearWhatIf">Temizle</button>
+      </div>
+      <div class="note" style="margin-top:8px;">
+        Seçili ürün(ler) için yeni toplam kâr hesaplanır ve ana grafikte “overlay” olarak gösterilir. Veritabanı değişmez.
+      </div>
+    </div>
+  </div>
+
+  <!-- Veri Tablosu -->
+  <div class="card">
+    <div class="title">Özet Tablo</div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Ürün</th><th>Kategori</th><th>Toplam Kâr</th><th>Click</th><th>Sales</th>
+          <th>Avg Cost</th><th>Avg Price</th><th>Avg Unit Profit</th><th>Avg Profit/Click</th><th>Kümülatif %</th>
+        </tr>
+      </thead>
+      <tbody id="dataTable"></tbody>
+    </table>
+  </div>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js ve eklentiler -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2"></script>
+
+<script>
+/* ==================== Yardımcılar ==================== */
+const qs = (sel) => document.querySelector(sel);
+const fmtTRY = (n) => '₺' + (Number(n||0)).toLocaleString('tr-TR');
+const fmtPct = (n, d=2) => (Number(n||0)).toFixed(d) + '%';
+const selectedIdx = new Set();
+let baseData=null, abcData=null, lorenzData=null, topnData=null, scatterData=null, histData=null, treemapData=null, simData=null;
+
+/* param builder */
+function paramsBase(){
+  const p = new URLSearchParams();
+  const df = qs('#dateFrom').value, dt = qs('#dateTo').value, s = qs('#search').value;
+  const g = qs('#groupby').value, thr = qs('#threshold').value;
+  if(df) p.set('date_from', df);
+  if(dt) p.set('date_to', dt);
+  if(s)  p.set('search', s);
+  p.set('groupby', g);
+  p.set('threshold', thr);
+  return p;
+}
+
+/* canlı threshold etiketi */
+qs('#thVal').textContent = qs('#threshold').value;
+qs('#kpiThrVal').textContent = qs('#threshold').value;
+qs('#threshold').addEventListener('input', e=>{
+  qs('#thVal').textContent = e.target.value;
+  qs('#kpiThrVal').textContent = e.target.value;
+});
+
+/* ==================== Ana Pareto ==================== */
+let paretoChart, lorenzChart, topnChart, treemapChart, scatterChart, hist1, hist2;
+
+/* barlarda eşik alanını boyayan plugin */
+const ShadeThreshold = {
+  id: 'ShadeThreshold',
+  beforeDraw(chart){
+    const idx = chart.$idxThreshold ?? -1;
+    if(idx < 0) return;
+    const meta = chart.getDatasetMeta(0);
+    const el = meta?.data?.[idx];
+    if(!el) return;
+    const {ctx, chartArea:area} = chart;
+    const x0 = area.left, x1 = el.x + (el.width ? el.width/2 : 0);
+    ctx.save();
+    ctx.fillStyle = 'rgba(16,185,129,.08)';
+    ctx.fillRect(x0, area.top, x1-x0, area.bottom-area.top);
+    ctx.restore();
+  }
+};
+
+/* renkler */
+const grad = (ctx, c1, c2) => {
+  const g = ctx.createLinearGradient(0,0,0,400);
+  g.addColorStop(0,c1); g.addColorStop(1,c2); return g;
+}
+
+/* render Pareto */
+function renderPareto(data, overlay=false){
+  const ctx = qs('#paretoChart').getContext('2d');
+  const bars = data.labels.map((_,i)=> selectedIdx.has(i) ? 'rgba(37,99,235,.85)' : 'rgba(59,130,246,.35)');
+  const ds = [{
+    type:'bar', label:'Toplam Kâr (₺)', yAxisID:'y',
+    data: data.profit, backgroundColor: bars, borderColor:'rgba(59,130,246,.9)', borderWidth:1
+  },{
+    type:'line', label:'Kümülatif %', yAxisID:'y1', data:data.cum_pct, borderColor:'#ef4444', pointBackgroundColor:'#ef4444', borderWidth:3, tension:.3, pointRadius:3
+  },{
+    type:'line', label:'Eşik', yAxisID:'y1', data:Array(data.labels.length).fill(Number(qs('#threshold').value)), borderColor:'#111827', borderDash:[8,6], pointRadius:0, borderWidth:2
+  }];
+
+  if(overlay && simData){
+    ds.unshift({
+      type:'bar', label:'Simülasyon (₺)', yAxisID:'y',
+      data: simData.profit, backgroundColor:'rgba(16,185,129,.35)', borderColor:'rgba(16,185,129,.9)', borderWidth:1
+    });
+  }
+
+  if(paretoChart) paretoChart.destroy();
+  paretoChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels:data.labels, datasets: ds },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      scales:{
+        x:{ title:{display:true,text:'Ürünler',font:{weight:'bold'}} },
+        y:{ title:{display:true,text:'Toplam Kâr (₺)'}, ticks:{ callback:v=>fmtTRY(v) } },
+        y1:{ position:'right', min:0, max:100, title:{display:true,text:'Kümülatif %'}, grid:{ drawOnChartArea:false }, ticks:{ callback:v=>v+'%' } }
+      },
+      plugins:{
+        legend:{ position:'bottom', labels:{usePointStyle:true} },
+        tooltip:{ callbacks:{
+          title: ctx=> 'Ürün: '+ctx[0].label,
+          label: c=>{
+            if(c.dataset.yAxisID==='y') return 'Toplam kâr: '+fmtTRY(c.parsed.y);
+            if(c.dataset.yAxisID==='y1' && c.dataset.label==='Kümülatif %') return 'Kümülatif: '+c.parsed.y.toFixed(1)+'%';
+            return c.dataset.label;
+          },
+          footer: items=>{
+            const i = items[0].dataIndex, p = data.profit[i]||0, sum = data.sum_profit||0;
+            return 'Kâr payı: '+fmtPct(sum? (p/sum*100):0,2);
+          }
+        }}
+      },
+      onClick:(evt, els)=>{
+        if(!els.length) return;
+        const i = els[0].index;
+        if(selectedIdx.has(i)) selectedIdx.delete(i); else selectedIdx.add(i);
+        updateSelectedShare();
+        renderPareto(data, overlay);
+      }
+    },
+    plugins:[ShadeThreshold]
+  });
+  paretoChart.$idxThreshold = data.idx_threshold ?? -1;
+}
+
+/* KPI güncelle */
+function updateKPIs(){
+  qs('#kpiTotal').textContent = fmtTRY(baseData?.sum_profit || 0);
+  qs('#kpiThrCount').textContent = (baseData?.idx_threshold ?? -1) + 1;
+  qs('#kpiSelShare').textContent = fmtPct(calcSelectedShare());
+  if(lorenzData) qs('#kpiGini').textContent = Number(lorenzData.gini||0).toFixed(3);
+  if(abcData){
+    const s=abcData.summary;
+    qs('#kpiABC').textContent = `A:${s.A.count} (%${s.A.share_pct}) · B:${s.B.count} (%${s.B.share_pct}) · C:${s.C.count} (%${s.C.share_pct})`;
+  }
+}
+function calcSelectedShare(){
+  if(!baseData) return 0;
+  const sumSel = [...selectedIdx].reduce((acc,i)=> acc + (baseData.profit[i]||0), 0);
+  return baseData.sum_profit ? (sumSel/baseData.sum_profit*100) : 0;
+}
+function updateSelectedShare(){
+  qs('#kpiSelShare').textContent = fmtPct(calcSelectedShare());
+}
+
+/* ==================== Diğer Grafikler ==================== */
+function renderLorenz(d){
+  const ctx = qs('#lorenzChart').getContext('2d');
+  if(lorenzChart) lorenzChart.destroy();
+  lorenzChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: d.x.map(v=>Math.round(v*100)),
+      datasets:[
+        {label:'Eşitlik (45°)', data:d.x.map(v=>v*100), borderColor:'#94a3b8', borderDash:[6,6], tension:0, pointRadius:0},
+        {label:`Lorenz — Gini ${Number(d.gini||0).toFixed(3)}`, data:d.y.map(v=>v*100), borderColor: '#f97316', pointBackgroundColor:'#f97316', tension:.25, fill:true, backgroundColor:'rgba(249,115,22,.1)'}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ y:{ min:0, max:100, ticks:{ callback:v=>v+'%' } }, x:{ ticks:{ callback:v=>v+'%' } } },
+      plugins:{ legend:{ position:'bottom' } }
+    }
+  });
+}
+
+function renderTopN(d){
+  const ctx = qs('#topnChart').getContext('2d');
+  if(topnChart) topnChart.destroy();
+  topnChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels:d.labels, datasets:[{label:'Toplam Kâr (₺)', data:d.profit, backgroundColor:'rgba(37,99,235,.6)'}]},
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', scales:{ x:{ ticks:{ callback:v=>fmtTRY(v) }}}}
+  });
+}
+
+function renderTreemap(root){
+  const ctx = qs('#treemapChart').getContext('2d');
+  if(treemapChart) treemapChart.destroy();
+  treemapChart = new Chart(ctx, {
+    type:'treemap',
+    data:{
+      datasets:[{
+        tree: root.root.children,
+        key:'value',
+        groups: ['name'],
+        labels:{
+          display:true,
+          formatter:(ctx)=> `${ctx.raw._data.name}\n${fmtTRY(ctx.raw.v)}`
+        },
+        backgroundColor:(ctx)=>{
+          const g = ctx.raw.g; // üst grup adı
+          if(!g) return '#e5e7eb';
+          if(g==='A') return 'rgba(16,185,129,.7)';
+          if(g==='B') return 'rgba(234,179,8,.75)';
+          return 'rgba(148,163,184,.7)';
+        },
+        borderColor:'#fff',
+        borderWidth:2,
+        spacing:1
+      }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} } }
+  });
+}
+
+function renderScatter(sets, key){
+  const ctx = qs('#scatterChart').getContext('2d');
+  const d = sets[key] || [];
+  if(scatterChart) scatterChart.destroy();
+  scatterChart = new Chart(ctx, {
+    type:'scatter',
+    data:{ datasets:[{
+      label:key.replace('_',' → '),
+      data: d,
+      parsing:false,
+      backgroundColor:'rgba(124,58,237,.6)',
+      borderColor:'rgba(124,58,237,1)'
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ tooltip:{ callbacks:{ label:c=> `${c.raw.label}: (${c.raw.x}, ${c.raw.y})` }}, legend:{display:false} }
+    }
+  });
+}
+
+function renderHists(h){
+  const ctx1 = qs('#histPPC').getContext('2d');
+  const ctx2 = qs('#histUnit').getContext('2d');
+  const bar = (hist, edges)=>({ labels:edges.slice(0,-1).map((e,i)=>`${edges[i].toFixed(2)}–${edges[i+1].toFixed(2)}`), data:hist });
+  const a = bar(h.ppc.hist, h.ppc.edges), b = bar(h.unit.hist, h.unit.edges);
+
+  if(hist1) hist1.destroy();
+  hist1 = new Chart(ctx1, { type:'bar', data:{ labels:a.labels, datasets:[{label:'Avg Profit/Click Dağılımı', data:a.data, backgroundColor:'rgba(2,132,199,.6)'}] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }});
+  if(hist2) hist2.destroy();
+  hist2 = new Chart(ctx2, { type:'bar', data:{ labels:b.labels, datasets:[{label:'Avg Unit Profit Dağılımı', data:b.data, backgroundColor:'rgba(236,72,153,.6)'}] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }});
+}
+
+/* tablo doldur */
+function fillTable(base, abc){
+  const tb = qs('#dataTable'); tb.innerHTML='';
+  const classBy = {};
+  (abc?.items||[]).forEach(it=> classBy[String(it.label)] = it.class);
+  (base.table?.rows||[]).forEach((r,i)=>{
+    const cls = classBy[String(r.label)] || '-';
+    const tr = document.createElement('tr');
+    const cum = base.cum_pct?.[i] ?? 0;
+    tr.innerHTML = `
+      <td>${r.label}</td>
+      <td><span class="badge ${cls}">${cls}</span></td>
+      <td>${fmtTRY(r.sum_profit)}</td>
+      <td>${r.sum_click}</td>
+      <td>${r.sum_sales}</td>
+      <td>${fmtTRY(r.avg_cost)}</td>
+      <td>${fmtTRY(r.avg_price)}</td>
+      <td>${fmtTRY(r.avg_unit_profit)}</td>
+      <td>${fmtTRY(r.avg_ppc)}</td>
+      <td>${cum.toFixed(2)}%</td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+
+/* ==================== Veri Yükleme ==================== */
+async function fetchJSON(url){ const r = await fetch(url); return await r.json(); }
+
+async function loadAll(){
+  const p = paramsBase();
+  const [base, abc, lor, topn, sc, hs, tree] = await Promise.all([
+    fetchJSON('/api/pareto?'+p.toString()),
+    fetchJSON('/api/pareto/abc?'+p.toString()),
+    fetchJSON('/api/pareto/lorenz?'+p.toString()),
+    fetchJSON('/api/pareto/topn?'+p.toString()),
+    fetchJSON('/api/pareto/scatter?'+p.toString()),
+    fetchJSON('/api/pareto/hist?'+p.toString()),
+    fetchJSON('/api/pareto/treemap?'+p.toString())
+  ]);
+
+  baseData = base.success ? base : null;
+  abcData = abc.success ? abc : null;
+  lorenzData = lor.success ? lor : null;
+  topnData = topn.success ? topn : null;
+  scatterData = sc.success ? sc.sets : null;
+  histData = hs.success ? hs : null;
+  treemapData = tree.success ? tree : null;
+
+  selectedIdx.clear();
+
+  if(baseData){ renderPareto(baseData,false); }
+  if(lorenzData){ renderLorenz(lorenzData); }
+  if(topnData){ renderTopN(topnData); }
+  if(treemapData){ renderTreemap(treemapData); }
+  if(scatterData){ renderScatter(scatterData, qs('#scatterType').value); }
+  if(histData){ renderHists(histData); }
+  if(baseData && abcData){ fillTable(baseData, abcData); }
+
+  updateKPIs();
+}
+
+/* ==================== Olaylar ==================== */
+qs('#applyBtn').addEventListener('click', loadAll);
+qs('#resetBtn').addEventListener('click', ()=>{ selectedIdx.clear(); updateSelectedShare(); renderPareto(baseData,false); });
+qs('#exportBtn').addEventListener('click', ()=>{
+  const p = paramsBase(); window.location.href = '/api/pareto/export?'+p.toString();
+});
+qs('#scatterType').addEventListener('change', ()=>{
+  if(scatterData) renderScatter(scatterData, qs('#scatterType').value);
+});
+qs('#runWhatIf').addEventListener('click', async ()=>{
+  if(!selectedIdx.size){ alert('Önce ana grafikte en az bir bar seçin.'); return; }
+  const names = [...selectedIdx].map(i=> baseData.labels[i]).join(',');
+  const p = paramsBase();
+  p.set('selected', names);
+  p.set('price_delta_pct', qs('#priceDelta').value || '0');
+  p.set('sales_uplift_pct', qs('#salesUplift').value || '0');
+  const d = await fetchJSON('/api/pareto/whatif?'+p.toString());
+  if(!d.success){ alert('Simülasyon başarısız.'); return; }
+  simData = d;
+  renderPareto(baseData,true);
+});
+qs('#clearWhatIf').addEventListener('click', ()=>{ simData=null; renderPareto(baseData,false); });
+
+/* boot */
+loadAll();
+</script>
 {% endblock %}
