@@ -1,41 +1,40 @@
-"""
-Django settings for pardonai project.
-"""
 
 from pathlib import Path
 import os
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # ------------------------------------------------------------------------------
 # Base
 # ------------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# .env yükle (proje kökünde .env dosyası bekler)
+# .env yükle (proje kökünde .env beklenir)
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / ".env")
+
+def env_required(key: str) -> str:
+    """Zorunlu ortam değişkeni yoksa anlaşılır bir hata ver."""
+    val = env(key, default=None)
+    if val in (None, ""):
+        raise ImproperlyConfigured(f"Environment variable '{key}' is required.")
+    return val
 
 # ------------------------------------------------------------------------------
 # Security
 # ------------------------------------------------------------------------------
-SECRET_KEY = env("SECRET_KEY", default="!!!-CHANGE-ME-!!!")
-
-# Production'da DEBUG False
+SECRET_KEY = env_required("SECRET_KEY")          # .env zorunlu
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
-# ALLOWED_HOSTS: .env içinde virgülle ayrılmış listeyi destekler
-ALLOWED_HOSTS = env.list(
-    "ALLOWED_HOSTS",
-    default=["127.0.0.1", "localhost", "51.20.31.215"],
-)
+# Gizli değil ama ortamdan gelebilir; local için makul varsayılan bırakıyoruz
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"])
 
-# CSRF için güvenilir origin’ler (http/https domain ya da IP)
-# .env içinde CSRF_TRUSTED_ORIGINS tanımlıysa onu kullan; yoksa ALLOWED_HOSTS'tan üret
-DEFAULT_TRUSTED = []
-for h in ALLOWED_HOSTS:
-    if h not in ("localhost", "127.0.0.1", ""):
-        DEFAULT_TRUSTED.extend([f"http://{h}", f"https://{h}"])
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=DEFAULT_TRUSTED)
+# CSRF trusted origins: .env’de tanımlıysa onu kullan; yoksa ALLOWED_HOSTS’tan üret
+default_trusted = []
+for host in ALLOWED_HOSTS:
+    if host not in ("localhost", "127.0.0.1", ""):
+        default_trusted.extend([f"http://{host}", f"https://{host}"])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=default_trusted)
 
 # ------------------------------------------------------------------------------
 # Apps
@@ -48,7 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
-    # Core Apps
+    # Core
     "pardonai.dashboard",
 
     # Business Apps
@@ -65,7 +64,7 @@ INSTALLED_APPS = [
 # ------------------------------------------------------------------------------
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",   # Static file serving
+    "whitenoise.middleware.WhiteNoiseMiddleware",   # Static dosyalar
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -99,33 +98,28 @@ WSGI_APPLICATION = "pardonai.wsgi.application"
 
 # ------------------------------------------------------------------------------
 # Database
-# - Tercihen DATABASE_URL kullan (örn: postgres://user:pass@host:5432/dbname)
-# - Yoksa tek tek env değişkenlerinden oku
+# Tercih: DATABASE_URL (örn: postgres://user:pass@host:5432/dbname)
+# Alternatif: POSTGRES_* değişkenleri (hepsi zorunlu). Defaultsuz!
 # ------------------------------------------------------------------------------
-# Örn: DATABASE_URL=postgres://melek:Pa55_word123@localhost:5432/pardonai_db
-DATABASES = {
-    "default": env.db(
-        "DATABASE_URL",
-        default=f"postgres://{env('POSTGRES_USER', default='melek')}:{env('POSTGRES_PASSWORD', default='Pa55_word123')}"
-                f"@{env('POSTGRES_HOST', default='localhost')}:{env('POSTGRES_PORT', default='5432')}/"
-                f"{env('POSTGRES_DB', default='pardonai_db')}"
-    )
-}
-# Persistent connections
+db_url = env("DATABASE_URL", default=None)
+if db_url:
+    DATABASES = {"default": env.db("DATABASE_URL")}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": env_required("POSTGRES_DB"),
+            "USER": env_required("POSTGRES_USER"),
+            "PASSWORD": env_required("POSTGRES_PASSWORD"),
+            "HOST": env("POSTGRES_HOST", default="localhost"),
+            "PORT": env("POSTGRES_PORT", default="5432"),
+        }
+    }
+
 DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=60)
 
 # ------------------------------------------------------------------------------
-# Password validation
-# ------------------------------------------------------------------------------
-AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
-]
-
-# ------------------------------------------------------------------------------
-# Internationalization
+# I18N / TZ
 # ------------------------------------------------------------------------------
 LANGUAGE_CODE = "tr-tr"
 TIME_ZONE = "Europe/Istanbul"
@@ -133,37 +127,31 @@ USE_I18N = True
 USE_TZ = True
 
 # ------------------------------------------------------------------------------
-# Static files (Whitenoise ile)
+# Static / Media (Whitenoise)
 # ------------------------------------------------------------------------------
 STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"     # collectstatic çıktısı
+STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# ------------------------------------------------------------------------------
-# Media files
-# ------------------------------------------------------------------------------
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ------------------------------------------------------------------------------
-# Default PK
-# ------------------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ------------------------------------------------------------------------------
-# Prod güvenlik ayarları (DEBUG=False ise)
+# Prod güvenlik (DEBUG=False)
 # ------------------------------------------------------------------------------
 if not DEBUG:
-    SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=False)  # HTTPS yoksa False bırak
-    CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=False)        # HTTPS yoksa False bırak
+    SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=False)  # HTTPS yoksa False
+    CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=False)
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    # SSL arkasında çalışıyorsan (Load Balancer vb.):
+    # LB/Proxy arkasında isen aç:
     # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ------------------------------------------------------------------------------
-# Logging (gunicorn/stdout'a hata bas)
+# Logging
 # ------------------------------------------------------------------------------
 LOGGING = {
     "version": 1,
